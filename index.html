@@ -1,191 +1,27 @@
 <!doctype html>
-<html lang="zh-Hant">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#123d32">
-<meta name="description" content="實體紅心大戰手機電子計分簿">
-<link rel="manifest" href="manifest.webmanifest">
-<title>紅心大戰｜電子計分簿</title>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#123d32"><meta name="description" content="拱豬計分簿，記錄四人每局得分及本場累計"><link rel="manifest" href="manifest.webmanifest"><title>拱豬計分簿</title>
 <style>
-:root{--bg:#0d211c;--panel:#17372e;--panel2:#20483b;--gold:#e4c77b;--text:#fff8e8;--muted:#c3d1c8;--green:#70c49a;--red:#ffaaa0;--line:#416456}
-*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0d211c,#102d25 55%,#17382d);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;font-size:16px}
-header{padding:18px 16px 12px;text-align:center;border-bottom:1px solid var(--line);background:#102a22}
-h1{font-size:25px;margin:0;color:var(--gold);letter-spacing:2px}header small{color:var(--muted)}
-main{max-width:760px;margin:auto;padding:14px 13px 90px}
-nav{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(5,1fr);gap:5px;background:#102a22;padding:8px;border-bottom:1px solid var(--line)}
-nav button{font-size:14px;padding:10px 3px}
-button,select,input{font:inherit}button{border:1px solid #8d7946;border-radius:12px;padding:11px 13px;background:#294c3e;color:var(--text);font-weight:650;cursor:pointer}
-button.primary{background:linear-gradient(135deg,#e8d18f,#b9944e);color:#17271f;border:0}
-button.danger{border-color:#a75c55;background:#59332f}
-button.ghost{background:transparent;border-color:var(--line)}
-button:disabled{opacity:.4;cursor:not-allowed}
-section{display:none}section.active{display:block}
-.card{background:rgba(23,55,46,.96);border:1px solid var(--line);border-radius:17px;padding:15px;margin:12px 0;box-shadow:0 5px 18px #0002}
-h2{font-size:20px;color:var(--gold);margin:2px 0 13px}h3{font-size:17px;margin:8px 0;color:#f3dfaa}
-label{display:block;color:var(--muted);font-size:14px;margin:10px 0 5px}
-input,select{width:100%;padding:12px;border:1px solid #587466;border-radius:10px;background:#0e2921;color:var(--text);min-height:46px}
-input[type=checkbox]{width:20px;height:20px;min-height:auto;accent-color:#d6b86e}
-.row{display:flex;gap:9px;align-items:center}.row>*{flex:1}.row.wrap{flex-wrap:wrap}
-.muted{color:var(--muted);font-size:13px}.gold{color:var(--gold)}.big{font-size:27px;font-weight:800;color:var(--gold)}
-.notice{padding:13px;border-radius:13px;background:#284c3d;text-align:center;margin:10px 0}
-.notice strong{display:block;font-size:24px;color:#f0d68d;margin:4px}
-.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.player-score{background:#102b23;border:1px solid var(--line);border-radius:13px;padding:11px}
-.player-score h3{margin:0 0 8px}
-.score-table{width:100%;border-collapse:collapse;font-size:14px}.score-table th,.score-table td{padding:9px 5px;border-bottom:1px solid var(--line);text-align:center}.score-table th{color:var(--gold)}
-.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1;min-width:115px}
-.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#315b49;color:#f5e4b8;font-size:12px}
-.listitem{padding:12px 0;border-bottom:1px solid var(--line)}.listitem:last-child{border:0}
-.checkline{display:flex;align-items:center;gap:8px;margin:8px 0;color:var(--text);font-size:14px}
-hr{border:0;border-top:1px solid var(--line);margin:14px 0}
-footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}
-@media(max-width:420px){nav button{font-size:12px;padding:9px 1px}.player-grid{grid-template-columns:1fr 1fr}.card{padding:12px}}
-</style>
-</head>
-<body>
-<header><h1>紅心大戰</h1><small>實體牌局・手機電子計分簿</small></header>
-<nav>
-<button data-tab="play">目前牌局</button>
-<button data-tab="players">玩家管理</button>
-<button data-tab="history">歷史紀錄</button>
-<button data-tab="stats">排行榜</button>
-<button data-tab="backup">備份</button>
-</nav>
-<main>
-<section id="play" class="active">
- <div id="noMatch" class="card">
-  <h2>開始新牌局</h2>
-  <p class="muted">選擇四位玩家。每場可重新安排座位，歷史成績仍會跟著玩家。</p>
-  <div id="newPlayers"></div>
-  <div class="actions"><button class="primary" id="startMatch">開始牌局</button></div>
- </div>
- <div id="matchArea" hidden>
-  <div class="card">
-   <div class="row"><div><span class="pill" id="matchDate"></span></div><div style="text-align:right"><span class="pill" id="roundPill">第1局</span></div></div>
-   <div class="notice"><span class="muted">本局換牌提醒</span><strong id="exchange">向左傳</strong><span id="exchangeSub" class="muted">每人選出三張牌</span></div>
-   <h2>輸入本局分數</h2>
-   <p class="muted">紅心分數請輸入本局實際合計（負數）；♦J、♠Q 勾選後自動計分。射月時勾選射月，紅心及豬改計 +26。</p>
-   <div id="scoreInputs" class="player-grid"></div>
-   <div class="actions"><button class="primary" id="saveRound">儲存本局</button><button class="ghost" id="cancelEdit" hidden>取消修改</button></div>
-  </div>
-  <div class="card">
-   <h2>本場累計</h2><div id="totals"></div>
-   <div class="actions"><button class="ghost" id="finishMatch">結束本場並結算</button><button class="danger" id="abandonMatch">刪除本場</button></div>
-  </div>
-  <div class="card"><h2>已完成局數</h2><div id="roundList"></div></div>
- </div>
-</section>
-<section id="players">
- <div class="card"><h2>新增玩家</h2><label>玩家姓名</label><div class="row"><input id="newPlayerName" maxlength="24" placeholder="輸入姓名"><button id="addPlayer" class="primary" style="flex:0 0 100px">新增</button></div><p class="muted">玩家姓名請盡量固定使用，避免同一人被建立成多筆資料。</p></div>
- <div class="card"><h2>玩家名單</h2><div id="playerList"></div></div>
-</section>
-<section id="history">
- <div class="card"><h2>歷史牌局</h2><div class="muted">選擇一場可查看每局紀錄與總分。</div><div id="historyList"></div></div>
- <div class="card" id="historyDetail" hidden></div>
-</section>
-<section id="stats">
- <div class="card"><h2>玩家歷史排行榜</h2><p class="muted">依第一名次數排序；同場以總分較高者排名較前。</p><div id="statsTable"></div></div>
-</section>
-<section id="backup">
- <div class="card"><h2>資料備份與還原</h2><p>定期匯出 Excel 可開啟的 CSV 檔，並另外保存 JSON 完整備份。</p><div class="actions"><button class="primary" id="exportCsv">匯出 Excel 成績 CSV</button><button id="exportJson">匯出完整備份 JSON</button></div><label>選擇 JSON 備份檔還原</label><input type="file" id="importJson" accept=".json,application/json"><p class="muted">還原會以備份檔內容取代目前手機內的資料，請先確認檔案正確。</p></div>
-</section>
-<footer>資料目前保存在這支手機的瀏覽器中。請定期匯出備份，勿清除瀏覽器網站資料。</footer>
-</main>
+:root{--bg:#0d211c;--panel:#17372e;--gold:#e4c77b;--text:#fff8e8;--muted:#c3d1c8;--line:#416456;--blue:#72b7ff;--red:#ff9188}*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#0d211c,#102d25 55%,#17382d);color:var(--text);font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;font-size:16px}header{padding:18px 16px 12px;text-align:center;border-bottom:1px solid var(--line);background:#102a22}h1{font-size:25px;margin:0;color:var(--gold);letter-spacing:2px}header small{color:var(--muted)}main{max-width:760px;margin:auto;padding:14px 13px 90px}nav{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(2,1fr);gap:7px;background:#102a22;padding:8px;border-bottom:1px solid var(--line)}button,select,input{font:inherit}button{border:1px solid #8d7946;border-radius:12px;padding:11px 13px;background:#294c3e;color:var(--text);font-weight:650;cursor:pointer}button.primary{background:linear-gradient(135deg,#e8d18f,#b9944e);color:#17271f;border:0}button.danger{border-color:#a75c55;background:#59332f}button.ghost{background:transparent;border-color:var(--line)}button:disabled{opacity:.4;cursor:not-allowed}.tab{display:none}.tab.active{display:block}.card{background:rgba(23,55,46,.96);border:1px solid var(--line);border-radius:17px;padding:15px;margin:12px 0;box-shadow:0 5px 18px #0002}h2{font-size:20px;color:var(--gold);margin:2px 0 13px}h3{font-size:17px;margin:8px 0;color:#f3dfaa}label{display:block;color:var(--muted);font-size:14px;margin:10px 0 5px}input,select{width:100%;padding:12px;border:1px solid #587466;border-radius:10px;background:#0e2921;color:var(--text);min-height:46px}.row{display:flex;gap:9px;align-items:center}.row>*{flex:1}.muted{color:var(--muted);font-size:13px}.notice{padding:13px;border-radius:13px;background:#284c3d;text-align:center;margin:10px 0}.notice strong{display:block;font-size:22px;color:#f0d68d;margin:4px}.player-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.player-score{background:#102b23;border:1px solid var(--line);border-radius:13px;padding:11px}.player-score h3{margin:0 0 8px}.score-table{width:100%;border-collapse:collapse;font-size:14px}.score-table th,.score-table td{padding:9px 5px;border-bottom:1px solid var(--line);text-align:center}.score-table th{color:var(--gold)}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.actions button{flex:1;min-width:115px}.listitem{padding:12px 0;border-bottom:1px solid var(--line)}.positive{color:var(--blue);font-weight:700}.negative{color:var(--red);font-weight:700}.zero{color:var(--text)}.seat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#315b49;color:#f5e4b8;font-size:12px}footer{text-align:center;color:var(--muted);font-size:12px;padding:18px}@media(max-width:420px){.player-grid{grid-template-columns:1fr 1fr}.card{padding:12px}}
+</style></head><body><header><h1>拱豬計分簿</h1><small>固定四人・逐局記分・本場累計</small></header><nav><button class="primary" data-tab="play">目前牌局</button><button data-tab="backup">備份與還原</button></nav><main>
+<section id="play" class="tab active"><div id="noMatch" class="card"><h2>開始新場</h2><p class="muted">固定玩家：媽媽、二姊、小青、鳳秋。每局直接輸入四人的得分。</p><button class="primary" id="startMatch">開啟新場</button></div><div id="matchArea" hidden>
+<div class="card"><div class="row"><span class="pill" id="matchDate"></span><span class="pill" id="roundPill">第 1 局</span></div><h2>輸入本局分數</h2><p class="muted">請輸入本局四位玩家的實際得分，可輸入正數或負數。</p><div class="player-grid" id="scoreInputs"></div><div class="actions"><button class="primary" id="saveRound">儲存本局</button><button class="ghost" id="cancelEdit" hidden>取消修改</button></div></div>
+<div class="card"><h2>本場累計</h2><div id="totals"></div><div id="goalNotice"></div><div class="actions"><button class="danger" id="abandonMatch">刪除本場</button></div></div><div class="card"><h2>本場逐局記錄</h2><div id="roundList"></div></div>
+<div class="card"><h2>筆記本</h2><p class="muted">記錄本場下次接續時的座位、領牌人，以及誰吃豬。</p><div class="seat-grid" id="seatInputs"></div><label>下一位領牌人</label><select id="dealer"></select><label>誰吃豬</label><select id="pigEater"></select><div class="actions"><button class="primary" id="saveNotes">儲存筆記</button></div><div id="noteSaved" class="muted"></div></div></div></section>
+<section id="backup" class="tab"><div class="card"><h2>資料備份與還原</h2><p>匯出 Excel 可開啟的 CSV，或完整 JSON 備份（包含進行中與已結束牌局、逐局分數及筆記）。</p><div class="actions"><button class="primary" id="exportCsv">匯出成績 CSV</button><button id="exportJson">匯出完整備份 JSON</button></div><label>選擇 JSON 備份檔還原</label><input type="file" id="importJson" accept=".json,application/json"><p class="muted">還原會以備份檔內容取代目前手機內的資料。舊版紅心大戰 JSON 備份也可匯入，原有每局總分會保留。</p></div></section><footer>資料保存在這支手機的瀏覽器中。請定期匯出 JSON 備份。</footer></main>
 <script>
-const KEY='heartScorebookV1';
-let db=loadDB(), currentEdit=null;
-function loadDB(){try{return JSON.parse(localStorage.getItem(KEY))||{players:[],matches:[],active:null}}catch(e){return{players:[],matches:[],active:null}}}
-function saveDB(){localStorage.setItem(KEY,JSON.stringify(db));renderAll()}
-function uid(){return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}
-function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function fmt(n){return (n>0?'+':'')+n}
-function playerName(id){return db.players.find(p=>p.id===id)?.name||'已刪除玩家'}
-function activeMatch(){return db.matches.find(m=>m.id===db.active&&!m.finished)}
-function tab(name){document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));document.getElementById(name).classList.add('active');document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('primary',b.dataset.tab===name));}
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
-function direction(n){return ['向左傳','向右傳','向對面傳','不換牌'][(n-1)%4]}
-function totals(m){let t={};m.players.forEach(id=>t[id]=0);m.rounds.forEach(r=>m.players.forEach(id=>t[id]+=Number(r.scores[id]||0)));return t}
-function renderNewPlayers(){
- const box=document.getElementById('newPlayers');
- if(db.players.length<4){box.innerHTML='<p class="muted">請先到「玩家管理」新增至少四位玩家。</p>';document.getElementById('startMatch').disabled=true;return}
- document.getElementById('startMatch').disabled=false;
- box.innerHTML=[0,1,2,3].map((i)=>`<label>${['東方','南方','西方','北方'][i]}玩家</label><select class="newsel">${db.players.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select>`).join('');
-}
-function renderPlayers(){
- document.getElementById('playerList').innerHTML=db.players.length?db.players.map(p=>`<div class="listitem row"><div><b>${esc(p.name)}</b><div class="muted">玩家資料</div></div><button class="ghost" onclick="renamePlayer('${p.id}')">修改姓名</button></div>`).join(''):'<p class="muted">尚無玩家</p>';
-}
-window.renamePlayer=id=>{let p=db.players.find(x=>x.id===id);let n=prompt('修改玩家姓名',p.name);if(n&&n.trim()){p.name=n.trim();saveDB()}};
-function renderMatch(){
- let m=activeMatch();document.getElementById('noMatch').hidden=!!m;document.getElementById('matchArea').hidden=!m;if(!m)return;
- document.getElementById('matchDate').textContent=new Date(m.date).toLocaleString('zh-TW');
- let next=m.rounds.length+1;document.getElementById('roundPill').textContent='第 '+next+' 局';document.getElementById('exchange').textContent=direction(next);
- document.getElementById('exchangeSub').textContent=next%4===0?'本局不交換牌':'每人選出三張牌';
- document.getElementById('scoreInputs').innerHTML=m.players.map(id=>`<div class="player-score" data-player="${id}"><h3>${esc(playerName(id))}</h3><label>紅心牌分數（負數）</label><input class="heart" type="number" step="1" value="0"><label class="checkline"><input class="diamond" type="checkbox"> ♦J（+10）</label><label class="checkline"><input class="pig" type="checkbox"> ♠Q（-13）</label><label class="checkline"><input class="moon" type="checkbox"> 射月（紅心及豬改計 +26）</label></div>`).join('');
- document.getElementById('cancelEdit').hidden=!currentEdit;
- let t=totals(m);document.getElementById('totals').innerHTML=`<table class="score-table"><tr><th>玩家</th><th>本場累計</th></tr>${m.players.map(id=>`<tr><td>${esc(playerName(id))}</td><td>${fmt(t[id])}</td></tr>`).join('')}</table>`;
- document.getElementById('roundList').innerHTML=m.rounds.length?m.rounds.map((r,i)=>`<div class="listitem"><b>第 ${i+1} 局</b> <span class="pill">${direction(i+1)}</span><div class="muted">${m.players.map(id=>esc(playerName(id))+': '+fmt(r.scores[id])).join('　｜　')}</div><button class="ghost" onclick="editRound(${i})">修改本局</button></div>`).join(''):'<p class="muted">尚未登錄任何局數。</p>';
-}
-document.getElementById('startMatch').onclick=()=>{
- let ids=[...document.querySelectorAll('.newsel')].map(s=>s.value);if(new Set(ids).size!==4){alert('四個座位請選擇不同玩家。');return}
- if(activeMatch()&&!confirm('目前已有進行中的牌局，確定結束並另開新局？'))return;
- let m={id:uid(),date:new Date().toISOString(),players:ids,rounds:[],finished:false};db.matches.push(m);db.active=m.id;currentEdit=null;saveDB();tab('play');
-};
-function readScoreCards(){
- let m=activeMatch(), scores={};
- document.querySelectorAll('.player-score').forEach(el=>{
-  let id=el.dataset.player,heart=Number(el.querySelector('.heart').value||0),diamond=el.querySelector('.diamond').checked,pig=el.querySelector('.pig').checked,moon=el.querySelector('.moon').checked;
-  let score=(moon?26:heart+(pig?-13:0))+(diamond?10:0);scores[id]=score;
- });return scores;
-}
-document.getElementById('saveRound').onclick=()=>{
- let m=activeMatch();if(!m)return;let scores=readScoreCards();
- if(currentEdit!==null){m.rounds[currentEdit]={scores};currentEdit=null}else m.rounds.push({scores});
- saveDB();
-};
-window.editRound=i=>{
- let m=activeMatch();if(!m)return;let r=m.rounds[i];currentEdit=i;
- document.querySelectorAll('.player-score').forEach(el=>{let id=el.dataset.player;let s=r.scores[id]||0;
- // Restore as editable raw values conservatively; retain total as heart score to avoid losing recorded score.
- el.querySelector('.heart').value=s;el.querySelector('.diamond').checked=false;el.querySelector('.pig').checked=false;el.querySelector('.moon').checked=false;
- });document.getElementById('cancelEdit').hidden=false;window.scrollTo({top:0,behavior:'smooth'});
-};
-document.getElementById('cancelEdit').onclick=()=>{currentEdit=null;renderMatch()};
-document.getElementById('finishMatch').onclick=()=>{
- let m=activeMatch();if(!m)return;if(!m.rounds.length){alert('至少要先登錄一局才能結算。');return}
- if(!confirm('確定結束本場並保存最終排名？'))return;m.finished=true;m.endDate=new Date().toISOString();db.active=null;currentEdit=null;saveDB();
-};
-document.getElementById('abandonMatch').onclick=()=>{let m=activeMatch();if(m&&confirm('確定刪除這場尚未結束的牌局？此操作無法復原。')){db.matches=db.matches.filter(x=>x.id!==m.id);db.active=null;saveDB()}};
-document.getElementById('addPlayer').onclick=()=>{let el=document.getElementById('newPlayerName'),name=el.value.trim();if(!name)return;if(db.players.some(p=>p.name.toLowerCase()===name.toLowerCase())){alert('這個姓名已存在。');return}db.players.push({id:uid(),name});el.value='';saveDB()};
-function renderHistory(){
- let done=db.matches.filter(m=>m.finished).sort((a,b)=>b.date.localeCompare(a.date));
- document.getElementById('historyList').innerHTML=done.length?done.map(m=>`<div class="listitem"><b>${new Date(m.date).toLocaleDateString('zh-TW')}</b><div class="muted">${m.players.map(id=>esc(playerName(id))).join('、')}</div><button class="ghost" onclick="showHistory('${m.id}')">查看成績</button></div>`).join(''):'<p class="muted">尚無已結束的牌局。</p>';
-}
-window.showHistory=id=>{
- let m=db.matches.find(x=>x.id===id),t=totals(m),rank=[...m.players].sort((a,b)=>t[b]-t[a]);
- let el=document.getElementById('historyDetail');el.hidden=false;el.innerHTML=`<h2>牌局詳細紀錄</h2><p class="muted">${new Date(m.date).toLocaleString('zh-TW')}</p><h3>最終排名</h3><table class="score-table"><tr><th>名次</th><th>玩家</th><th>總分</th></tr>${rank.map((id,i)=>`<tr><td>${i+1}</td><td>${esc(playerName(id))}</td><td>${fmt(t[id])}</td></tr>`).join('')}</table><h3>逐局分數</h3><table class="score-table"><tr><th>局數</th>${m.players.map(id=>`<th>${esc(playerName(id))}</th>`).join('')}</tr>${m.rounds.map((r,i)=>`<tr><td>${i+1}</td>${m.players.map(id=>`<td>${fmt(r.scores[id])}</td>`).join('')}</tr>`).join('')}</table>`;
- el.scrollIntoView({behavior:'smooth'});
-};
-function renderStats(){
- let rows=db.players.map(p=>{let played=db.matches.filter(m=>m.finished&&m.players.includes(p.id));let wins=0,points=0,best=null;
- played.forEach(m=>{let t=totals(m),max=Math.max(...m.players.map(id=>t[id]));if(t[p.id]===max)wins++;points+=t[p.id];best=best===null?t[p.id]:Math.max(best,t[p.id])});
- return {...p,played:played.length,wins,rate:played.length?wins/played.length*100:0,points,best}});
- rows.sort((a,b)=>b.wins-a.wins||b.points-a.points);
- document.getElementById('statsTable').innerHTML=rows.length?`<table class="score-table"><tr><th>玩家</th><th>場次</th><th>第一名</th><th>勝率</th><th>總分</th></tr>${rows.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.played}</td><td>${p.wins}</td><td>${p.rate.toFixed(1)}%</td><td>${fmt(p.points)}</td></tr>`).join('')}</table>`:'<p class="muted">尚無玩家資料。</p>';
-}
-function renderAll(){renderNewPlayers();renderPlayers();renderMatch();renderHistory();renderStats()}
-function download(name,content,type){let a=document.createElement('a'),url=URL.createObjectURL(new Blob([content],{type}));a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}
-function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"'}
-document.getElementById('exportCsv').onclick=()=>{
- let rows=[['日期','場次ID','局數','換牌方向','玩家','方位','本局分數','本場總分','是否結束']];
- db.matches.forEach(m=>{let t=totals(m);m.rounds.forEach((r,i)=>m.players.forEach((id,pos)=>rows.push([new Date(m.date).toLocaleString('zh-TW'),m.id,i+1,direction(i+1),playerName(id),['東','南','西','北'][pos],r.scores[id],t[id],m.finished?'是':'否'])))});
- let csv='\ufeff'+rows.map(r=>r.map(csvCell).join(',')).join('\r\n');download('紅心大戰成績.csv',csv,'text/csv;charset=utf-8');
-};
-document.getElementById('exportJson').onclick=()=>download('紅心大戰完整備份.json',JSON.stringify(db,null,2),'application/json');
-document.getElementById('importJson').onchange=async e=>{
- let f=e.target.files[0];if(!f)return;try{let d=JSON.parse(await f.text());if(!Array.isArray(d.players)||!Array.isArray(d.matches))throw Error();if(!confirm('確定以備份檔取代本機現有資料？'))return;db=d;saveDB();alert('資料還原完成。')}catch(err){alert('檔案格式不正確，無法還原。')}e.target.value='';
-};
-renderAll();
-if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
-</script>
-</body></html>
+const KEY='heartScorebookV1',NAMES=['媽媽','二姊','小青','鳳秋'],IDS=['fixed-mom','fixed-sister','fixed-qing','fixed-feng'];let db=loadDB(),currentEdit=null;
+function emptyDB(){return{version:2,players:NAMES.map((name,i)=>({id:IDS[i],name})),matches:[],active:null}}
+function loadDB(){try{let x=JSON.parse(localStorage.getItem(KEY));return normalize(x)}catch(e){return emptyDB()}}
+function normalize(x){if(!x||!Array.isArray(x.players)||!Array.isArray(x.matches))return emptyDB();let map={},players=NAMES.map((name,i)=>({id:IDS[i],name}));x.players.forEach((p,i)=>{let known=NAMES.indexOf(p.name);map[p.id]=IDS[known>=0?known:i%4]});let matches=x.matches.map((m,mi)=>{let old=m.players||x.players.slice(0,4).map(p=>p.id),ids=old.map((id,i)=>map[id]||IDS[i%4]),uniq=[...new Set(ids)];if(uniq.length<4)ids=IDS.slice();let rounds=(m.rounds||[]).map(r=>{let scores={};ids.forEach((id,i)=>{let oldId=old[i];scores[id]=Number(r.scores?.[oldId]??r.scores?.[id]??0)});return{scores}});let n=m.notes||{};let seats=(n.seats||[]).map(id=>map[id]||IDS[NAMES.indexOf(id)]).filter(Boolean);return{...m,players:IDS.slice(),rounds,notes:{seats:seats.length===4&&new Set(seats).size===4?seats:IDS.slice(),dealer:map[n.dealer]||n.dealer||IDS[0],pigEater:map[n.pigEater]||n.pigEater||''},finished:!!m.finished}});let active=x.active;if(!matches.some(m=>m.id===active&&!m.finished))active=matches.find(m=>!m.finished)?.id||null;return{version:2,players,matches,active}}
+function saveDB(){localStorage.setItem(KEY,JSON.stringify(db));renderAll()}function uid(){return'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function fmt(n){n=Number(n)||0;return(n>0?'+':'')+n}function cls(n){return n>0?'positive':n<0?'negative':'zero'}function name(id){return NAMES[IDS.indexOf(id)]||'未知玩家'}function active(){return db.matches.find(m=>m.id===db.active&&!m.finished)}function tab(id){document.querySelectorAll('.tab').forEach(e=>e.classList.toggle('active',e.id===id));document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('primary',b.dataset.tab===id))}document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>tab(b.dataset.tab));function totals(m){let t=Object.fromEntries(IDS.map(id=>[id,0]));m.rounds.forEach(r=>IDS.forEach(id=>t[id]+=Number(r.scores?.[id]||0)));return t}
+function renderMatch(){let m=active()||[...db.matches].reverse().find(x=>x.finished);document.getElementById('noMatch').hidden=!!m;document.getElementById('matchArea').hidden=!m;if(!m)return;document.querySelector('#matchArea .card').hidden=!!m.finished;document.getElementById('abandonMatch').hidden=!!m.finished;document.getElementById('matchDate').textContent=new Date(m.date).toLocaleString('zh-TW');document.getElementById('roundPill').textContent=`第 ${m.rounds.length+1} 局`;document.getElementById('scoreInputs').innerHTML=IDS.map(id=>`<div class="player-score" data-player="${id}"><h3>${name(id)}</h3><label>本局得分</label><input class="score" type="number" step="1" value="0"></div>`).join('');document.getElementById('cancelEdit').hidden=currentEdit===null;let t=totals(m);document.getElementById('totals').innerHTML=`<table class="score-table"><tr><th>玩家</th><th>本場累計</th></tr>${IDS.map(id=>`<tr><td>${name(id)}</td><td class="${cls(t[id])}">${fmt(t[id])}</td></tr>`).join('')}</table>`;let achiever=IDS.find(id=>t[id]>=1000||t[id]<=-1000);document.getElementById('goalNotice').innerHTML=m.finished?`<div class="notice"><span>${achiever?'本場目標達成':'本場已結束'}</span><strong>${achiever?`${name(achiever)} ${t[achiever]>=1000?'達到 +1000（最贏）':'達到 -1000（最輸）'}`:'可開啟新場'}</strong><div class="actions"><button class="primary" onclick="newMatch()">開啟新場</button></div></div>`:'';document.getElementById('roundList').innerHTML=m.rounds.length?m.rounds.map((r,i)=>`<div class="listitem"><b>第 ${i+1} 局</b><table class="score-table"><tr>${IDS.map(id=>`<th>${name(id)}</th>`).join('')}</tr><tr>${IDS.map(id=>`<td class="${cls(r.scores[id])}">${fmt(r.scores[id])}</td>`).join('')}</tr></table><button class="ghost" onclick="editRound(${i})">修改本局</button></div>`).join(''):'<p class="muted">尚未登錄任何局數。</p>';renderNotes(m)}
+function renderNotes(m){let n=m.notes||(m.notes={seats:IDS.slice(),dealer:IDS[0],pigEater:''});document.getElementById('seatInputs').innerHTML=IDS.map((_,i)=>`<div><label>座位 ${i+1}</label><select class="seat" data-seat="${i}">${IDS.map(id=>`<option value="${id}" ${n.seats[i]===id?'selected':''}>${name(id)}</option>`).join('')}</select></div>`).join('');let opts='<option value="">請選擇</option>'+IDS.map(id=>`<option value="${id}">${name(id)}</option>`).join('');document.getElementById('dealer').innerHTML=opts;document.getElementById('pigEater').innerHTML=opts;document.getElementById('dealer').value=n.dealer||'';document.getElementById('pigEater').value=n.pigEater||'';document.getElementById('noteSaved').textContent='記得按「儲存筆記」保存本機資料。'}
+window.newMatch=()=>{let m={id:uid(),date:new Date().toISOString(),players:IDS.slice(),rounds:[],finished:false,notes:{seats:IDS.slice(),dealer:IDS[0],pigEater:''}};db.matches.push(m);db.active=m.id;currentEdit=null;saveDB();tab('play')};document.getElementById('startMatch').onclick=()=>window.newMatch();
+document.getElementById('saveRound').onclick=()=>{let m=active();if(!m)return;let scores={};document.querySelectorAll('.player-score').forEach(el=>scores[el.dataset.player]=Number(el.querySelector('.score').value||0));if(currentEdit!==null){m.rounds[currentEdit]={scores};currentEdit=null}else m.rounds.push({scores});let t=totals(m),winner=IDS.find(id=>t[id]>=1000||t[id]<=-1000);if(winner){m.finished=true;m.endDate=new Date().toISOString();db.active=null;currentEdit=null}saveDB();if(winner)alert(`${name(winner)} 累計 ${fmt(t[winner])}，已達到本場目標，本場結束。`)};
+window.editRound=i=>{let m=active();if(!m)return;currentEdit=i;document.querySelectorAll('.player-score').forEach(el=>el.querySelector('.score').value=m.rounds[i].scores[el.dataset.player]??0);document.getElementById('cancelEdit').hidden=false;window.scrollTo({top:0,behavior:'smooth'})};document.getElementById('cancelEdit').onclick=()=>{currentEdit=null;renderMatch()};document.getElementById('saveNotes').onclick=()=>{let m=active();if(!m)return;let seats=[...document.querySelectorAll('.seat')].map(s=>s.value);if(new Set(seats).size!==4){alert('座位 1 至 4 請選擇不同玩家。');return}m.notes={seats,dealer:document.getElementById('dealer').value,pigEater:document.getElementById('pigEater').value};saveDB();alert('筆記已儲存。')};document.getElementById('abandonMatch').onclick=()=>{let m=active();if(m&&confirm('確定刪除這場尚未結束的牌局？')){db.matches=db.matches.filter(x=>x.id!==m.id);db.active=null;saveDB()}};
+function renderAll(){renderMatch()}function download(n,c,t){let a=document.createElement('a'),u=URL.createObjectURL(new Blob([c],{type:t}));a.href=u;a.download=n;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}function cell(v){return'"'+String(v??'').replace(/"/g,'""')+'"'}document.getElementById('exportCsv').onclick=()=>{let rows=[['日期','場次ID','局數','玩家','座位','本局分數','本場累計','是否結束']];db.matches.forEach(m=>{let running=Object.fromEntries(IDS.map(id=>[id,0]));m.rounds.forEach((r,i)=>{IDS.forEach(id=>running[id]+=Number(r.scores[id]||0));IDS.forEach((id,pos)=>rows.push([new Date(m.date).toLocaleString('zh-TW'),m.id,i+1,name(id),pos+1,r.scores[id],running[id],m.finished?'是':'否']))})});download('拱豬計分簿成績.csv','\ufeff'+rows.map(r=>r.map(cell).join(',')).join('\r\n'),'text/csv;charset=utf-8')};document.getElementById('exportJson').onclick=()=>download('拱豬計分簿完整備份.json',JSON.stringify(db,null,2),'application/json');document.getElementById('importJson').onchange=async e=>{let f=e.target.files[0];if(!f)return;try{let d=normalize(JSON.parse(await f.text()));if(!confirm('確定以備份檔取代本機現有資料？'))return;db=d;saveDB();alert('資料還原完成。')}catch(err){alert('檔案格式不正確，無法還原。')}e.target.value=''};renderAll();if('serviceWorker'in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script></body></html>
+
+
+
+

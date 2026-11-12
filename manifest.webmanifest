@@ -1,6 +1,6 @@
 {
-  "name": "紅心大戰電子計分簿",
-  "short_name": "紅心計分簿",
+  "name": "拱豬計分簿",
+  "short_name": "拱豬計分簿",
   "start_url": "./",
   "display": "standalone",
   "background_color": "#0d211c",
