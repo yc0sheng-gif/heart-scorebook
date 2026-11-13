@@ -1,10 +1,34 @@
 {
+  "id": "./",
   "name": "拱豬計分簿",
   "short_name": "拱豬計分簿",
+  "description": "固定四位玩家的拱豬計分簿",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0d211c",
   "theme_color": "#123d32",
-  "lang": "zh-TW",
-  "icons": []
+  "lang": "zh-Hant",
+  "categories": ["games", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }
