@@ -47,26 +47,49 @@ function saveScores(scores){
  saveDB();
  if(winner)alert(currentBook==='heart'?`${name(winner)} 累計 ${fmt(t[winner])}，已達 -100（最輸），本場結束。`:`${name(winner)} 累計 ${fmt(t[winner])}，已達到本場目標，本場結束。`)
 }
-const HEART_CARD_VALUES=[-50,-40,-30,-20,-10,-9,-8,-7,-6,-5,-10,-3,-2];
-function pigScorePossibilities(){
- const cards=[100,-100,...HEART_CARD_VALUES], normal=new Set([0]), smallWinner=new Set([200]), smallOther=new Set([0]);
- for(let mask=0;mask<(1<<cards.length);mask++){
-  let vals=[],sum=0;for(let i=0;i<cards.length;i++)if(mask&(1<<i)){vals.push(cards[i]);sum+=cards[i]}
-  normal.add(sum);normal.add(vals.length===0?50:sum*2);
-  smallWinner.add(200+sum);smallWinner.add(200+(vals.length===0?50:sum*2));smallWinner.add(400+sum*2);
-  if(!vals.some((_,i)=>i>=2)) { smallOther.add(sum); smallOther.add(vals.length===0?50:sum*2); }
+const PIG_CARDS=[-50,-40,-30,-20,-10,-9,-8,-7,-6,-5,-10,-3,-2,100,-100,0],PIG_ALL=(1<<PIG_CARDS.length)-1,PIG_HEARTS=(1<<13)-1,PIG_CLUB=1<<15;
+function pigMaskScore(mask,mode,winner,player){
+ if(mode==='grand')return player===winner&&mask===PIG_ALL?1000:0;
+ let base=0;
+ for(let i=0;i<15;i++)if(mask&(1<<i)){
+  if(mode==='small'&&i<13)continue;
+  if(mode==='small'&&i===13)base+=player===winner?100:-100;
+  else if(mode==='small'&&i===14)base+=100;
+  else base+=PIG_CARDS[i];
  }
- const allowed=new Set([...normal,...smallWinner,...smallOther,-1000,1000]);
- return allowed;
+ if(mode==='small'&&player===winner)base+=200;
+ if(mask&PIG_CLUB)return mask===PIG_CLUB?50:base*2;
+ return base;
 }
+function pigPartitionPossible(scores,mode='normal',winner=-1){
+ const targets=IDS.map(id=>Number(scores[id]));
+ if(mode==='grand')return IDS.some((_,p)=>targets.every((v,i)=>v===(i===p?1000:0)));
+ const allowed=IDS.map((_,p)=>{let a=[];for(let mask=0;mask<=PIG_ALL;mask++){
+  if(mode==='small'&&((p===winner&&(mask&PIG_HEARTS)!==PIG_HEARTS)||(p!==winner&&(mask&PIG_HEARTS)!==0)))continue;
+  if(pigMaskScore(mask,mode,winner,p)===targets[p])a.push(mask);
+ }return a.sort((x,y)=>popcount(x)-popcount(y))});
+ if(allowed.some(a=>!a.length))return false;
+ const order=[0,1,2,3].sort((a,b)=>allowed[a].length-allowed[b].length),memo=new Set();
+ function search(depth,remaining){if(depth===3)return pigMaskScore(remaining,mode,winner,order[3])===targets[order[3]];
+  const key=depth+':'+remaining;if(memo.has(key))return false;memo.add(key);
+  for(const mask of allowed[order[depth]])if((mask&remaining)===mask&&search(depth+1,remaining^mask))return true;
+  return false;
+ }
+ return search(0,PIG_ALL);
+}
+function popcount(n){let c=0;while(n){n&=n-1;c++}return c}
 function pigScoreWarnings(scores){
- const possible=pigScorePossibilities(),bad=IDS.filter(id=>!possible.has(Number(scores[id])));
- return bad.map(id=>`${name(id)} ${fmt(scores[id])} 分無法由目前拱豬計分規則推導，請確認是否輸入錯誤。`);
+ if(pigPartitionPossible(scores)||[0,1,2,3].some(w=>pigPartitionPossible(scores,'small',w))||pigPartitionPossible(scores,'grand'))return [];
+ const bad=IDS.filter((_,p)=>![...Array(PIG_ALL+1).keys()].some(mask=>['normal','small'].some(mode=>[0,1,2,3].some(w=>{
+  if(mode==='small'&&((p===w&&(mask&PIG_HEARTS)!==PIG_HEARTS)||(p!==w&&(mask&PIG_HEARTS)!==0)))return false;
+  return pigMaskScore(mask,mode,w,p)===Number(scores[IDS[p]])
+ }))));
+ return bad.length?bad.map(id=>`${name(id)} ${fmt(scores[id])} 分不符合可成立的牌面計分，請優先檢查。`):['四人的分數各自看似合理，但整組無法由規則成立的牌面分配產生，請複核四人分數。'];
 }
-function openRoundReview(scores){
+function openRoundReview(scores,warnings){
  pendingRoundScores=scores;
  document.getElementById('reviewScores').innerHTML=IDS.map(id=>`<tr><td>${name(id)}</td><td class="${cls(scores[id])}">${fmt(scores[id])}</td></tr>`).join('');
- const warnings=pigScoreWarnings(scores),warning=document.getElementById('reviewWarning');warning.hidden=!warnings.length;warning.textContent=warnings.length?`自動警示：\n${warnings.join('\n')}`:'';
+ const warning=document.getElementById('reviewWarning');warning.hidden=!warnings.length;warning.textContent=warnings.length?`整組分數不可能成立。${warnings.join(' ')}`:'';
  document.getElementById('roundReview').hidden=false;
 }
 function closeRoundReview(){document.getElementById('roundReview').hidden=true;pendingRoundScores=null}
@@ -78,7 +101,7 @@ document.getElementById('saveRound').onclick=()=>{
  document.querySelectorAll('.player-score').forEach(el=>scores[el.dataset.player]=(parseInt(el.querySelector('.score').value,10)||0));
  if(currentEdit!==null){saveScores(scores);return}
  if(IDS.every(id=>scores[id]===0)){alert('請至少輸入一位玩家的非零分數，才能儲存本局。');return}
- if(currentBook==='pig'){openRoundReview(scores);return}
+ if(currentBook==='pig'){let warnings=pigScoreWarnings(scores);if(warnings.length){openRoundReview(scores,warnings);return}saveScores(scores);return}
  saveScores(scores);
 };
 window.editRound=i=>{let m=active();if(!m)return;currentEdit=i;document.getElementById('saveRound').textContent='確定修改';document.querySelectorAll('.player-score').forEach(el=>el.querySelector('.score').value=m.rounds[i].scores[el.dataset.player]??0);document.getElementById('cancelEdit').hidden=false;window.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>document.querySelector('#scoreInputs .score')?.focus({preventScroll:true}),0)};document.getElementById('cancelEdit').onclick=()=>{currentEdit=null;renderMatch()};document.getElementById('saveNotes').onclick=()=>{let m=active();if(!m)return;let seats=[...document.querySelectorAll('.seat')].map(s=>s.value);if(new Set(seats).size!==4){alert('座位 1 至 4 請選擇不同玩家。');return}let dealer=document.getElementById('dealer').value;m.notes={seats,dealer,pigEater:dealer};saveDB();alert('筆記已儲存。')};
