@@ -26,7 +26,7 @@
 </section>
 <section id="backup" class="tab"><div class="card"><h2>查詢備份</h2><p>查詢各場逐局得分；已結束場次會附上本場累計。</p><div class="actions"><button class="primary" id="queryRecords">查詢</button><button id="exportCsv">匯出 CSV</button></div><div id="recordResults" hidden></div></div></section>
 <footer>牌局記錄保存在這支手機的瀏覽器中，可從「查詢備份」匯出 CSV。</footer>
-<div id="roundReview" class="review-overlay" hidden><div class="review-panel" role="dialog" aria-modal="true" aria-labelledby="reviewTitle"><h2 id="reviewTitle">儲存前複核</h2><p id="reviewWarning" class="notice" hidden></p><p>請核對本局四人得分。警示表示數值不符合可推導的規則範圍，請返回確認。</p><table class="score-table"><thead><tr><th>玩家</th><th>本局得分</th></tr></thead><tbody id="reviewScores"></tbody></table><p class="muted">程式只輸入總分，無法核對實際牌面分配；警示需人工確認，仍可選擇確認儲存。</p><div class="actions"><button class="ghost" id="reviewBack">返回修改</button><button class="primary" id="reviewConfirm">確認儲存</button></div></div></div>
+<div id="roundReview" class="review-overlay" hidden><div class="review-panel" role="dialog" aria-modal="true" aria-labelledby="reviewTitle"><h2 id="reviewTitle">儲存前複核</h2><p id="reviewWarning" class="notice" hidden></p><p>這組分數無法依本記分簿規則成立，請檢查被標示的玩家或複核四人分數。</p><table class="score-table"><thead><tr><th>玩家</th><th>本局得分</th></tr></thead><tbody id="reviewScores"></tbody></table><p class="muted">程式只輸入總分，無法核對實際牌面分配；確認後仍可儲存。</p><div class="actions"><button class="ghost" id="reviewBack">返回修改</button><button class="primary" id="reviewConfirm">確認儲存</button></div></div></div>
 <div id="settingsOverlay" class="settings-overlay" hidden><div class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle"><h2 id="settingsTitle">設定所有文字大小</h2><p class="muted">每一類文字可分別調整，設定會保存在本機。</p><div id="settingsControls" class="settings-controls"></div><h3>配色</h3><p class="muted">選擇一組適合閱讀的配色。</p><div id="paletteChoices" class="palette-choices"><button class="palette-option" data-palette="forest"><span class="swatch" style="--swatch:#e4c77b;background:#17372e"></span>黃綠（原色）</button><button class="palette-option" data-palette="ocean"><span class="swatch" style="--swatch:#8ee0ec;background:#1b3650"></span>海洋藍</button><button class="palette-option" data-palette="grape"><span class="swatch" style="--swatch:#edb5df;background:#392744"></span>葡萄紫</button><button class="palette-option" data-palette="terracotta"><span class="swatch" style="--swatch:#ffc485;background:#4a3026"></span>夕陽陶</button><button class="palette-option" data-palette="slate"><span class="swatch" style="--swatch:#b4c8ff;background:#263448"></span>石板藍</button><button class="palette-option" data-palette="teal"><span class="swatch" style="--swatch:#7de1c2;background:#183d3b"></span>深海青</button><button class="palette-option" data-palette="sakura"><span class="swatch" style="--swatch:#ffb6cb;background:#402334"></span>櫻花粉</button><button class="palette-option" data-palette="charcoal"><span class="swatch" style="--swatch:#c9d2df;background:#303642"></span>黑曜灰</button></div><div class="settings-bottom"><button id="resetSettings" class="ghost">恢復預設字級與配色</button><button id="settingsCloseBottom" class="primary">關閉</button></div></div></div></main>
 <script>
 const PIG_KEY='heartScorebookV1',HEART_KEY='redHeartScorebookV1',NAMES=['媽媽','二姊','小青','鳳秋'],IDS=['fixed-mom','fixed-sister','fixed-qing','fixed-feng'];let currentBook=null,KEY=PIG_KEY,db=emptyDB(),currentEdit=null,pendingRoundScores=null;
@@ -86,6 +86,36 @@ function pigScoreWarnings(scores){
  }))));
  return bad.length?bad.map(id=>`${name(id)} ${fmt(scores[id])} 分不符合可成立的牌面計分，請優先檢查。`):['四人的分數各自看似合理，但整組無法由規則成立的牌面分配產生，請複核四人分數。'];
 }
+const HEART_ALL=(1<<15)-1,HEARTS_MASK=(1<<13)-1;
+function heartPartitionPossible(scores){
+ const targets=IDS.map(id=>Number(scores[id]));
+ const allowed=IDS.map((_,p)=>{let a=[];for(let mask=0;mask<=HEART_ALL;mask++){
+  let value=0;for(let i=0;i<13;i++)if(mask&(1<<i))value--;
+  if(mask&(1<<13))value+=10;if(mask&(1<<14))value-=13;
+  if(value===targets[p])a.push(mask);
+ }return a.sort((x,y)=>popcount(x)-popcount(y))});
+ if(allowed.some(a=>!a.length))return false;
+ const order=[0,1,2,3].sort((a,b)=>allowed[a].length-allowed[b].length),memo=new Set();
+ function search(depth,remaining){if(depth===3){let value=0;for(let i=0;i<13;i++)if(remaining&(1<<i))value--;if(remaining&(1<<13))value+=10;if(remaining&(1<<14))value-=13;return value===targets[order[3]]}
+  const key=depth+':'+remaining;if(memo.has(key))return false;memo.add(key);
+  for(const mask of allowed[order[depth]])if((mask&remaining)===mask&&search(depth+1,remaining^mask))return true;
+  return false;
+ }
+ return search(0,HEART_ALL);
+}
+function heartScoreWarnings(scores){
+ if(heartPartitionPossible(scores))return [];
+ for(let shooter=0;shooter<4;shooter++)for(let sheepHolder=0;sheepHolder<4;sheepHolder++){
+  if(IDS.every((_,p)=>Number(scores[IDS[p]])===(p===shooter?0:-26)+(p===sheepHolder?10:0)))return [];
+ }
+ const normalPossible=IDS.map((_,p)=>{for(let mask=0;mask<=HEART_ALL;mask++){
+  let value=0;for(let i=0;i<13;i++)if(mask&(1<<i))value--;if(mask&(1<<13))value+=10;if(mask&(1<<14))value-=13;
+  if(value===Number(scores[IDS[p]]))return true;
+ }return false});
+ const moonPossible=IDS.map((_,p)=>{for(let shooter=0;shooter<4;shooter++)for(let sheep=0;sheep<4;sheep++)if(Number(scores[IDS[p]])===(p===shooter?0:-26)+(p===sheep?10:0))return true;return false});
+ const bad=IDS.filter((_,p)=>!normalPossible[p]&&!moonPossible[p]);
+ return bad.length?bad.map(id=>`${name(id)} ${fmt(scores[id])} 分不符合紅心大戰計分規則，請優先檢查。`):['四人的分數各自看似合理，但整組無法由規則成立的牌面分配產生，請複核四人分數。'];
+}
 function openRoundReview(scores,warnings){
  pendingRoundScores=scores;
  document.getElementById('reviewScores').innerHTML=IDS.map(id=>`<tr><td>${name(id)}</td><td class="${cls(scores[id])}">${fmt(scores[id])}</td></tr>`).join('');
@@ -101,8 +131,7 @@ document.getElementById('saveRound').onclick=()=>{
  document.querySelectorAll('.player-score').forEach(el=>scores[el.dataset.player]=(parseInt(el.querySelector('.score').value,10)||0));
  if(currentEdit!==null){saveScores(scores);return}
  if(IDS.every(id=>scores[id]===0)){alert('請至少輸入一位玩家的非零分數，才能儲存本局。');return}
- if(currentBook==='pig'){let warnings=pigScoreWarnings(scores);if(warnings.length){openRoundReview(scores,warnings);return}saveScores(scores);return}
- saveScores(scores);
+ let warnings=currentBook==='pig'?pigScoreWarnings(scores):heartScoreWarnings(scores);if(warnings.length){openRoundReview(scores,warnings);return}saveScores(scores);
 };
 window.editRound=i=>{let m=active();if(!m)return;currentEdit=i;document.getElementById('saveRound').textContent='確定修改';document.querySelectorAll('.player-score').forEach(el=>el.querySelector('.score').value=m.rounds[i].scores[el.dataset.player]??0);document.getElementById('cancelEdit').hidden=false;window.scrollTo({top:0,behavior:'smooth'});setTimeout(()=>document.querySelector('#scoreInputs .score')?.focus({preventScroll:true}),0)};document.getElementById('cancelEdit').onclick=()=>{currentEdit=null;renderMatch()};document.getElementById('saveNotes').onclick=()=>{let m=active();if(!m)return;let seats=[...document.querySelectorAll('.seat')].map(s=>s.value);if(new Set(seats).size!==4){alert('座位 1 至 4 請選擇不同玩家。');return}let dealer=document.getElementById('dealer').value;m.notes={seats,dealer,pigEater:dealer};saveDB();alert('筆記已儲存。')};
 const FONT_GROUPS=[['一般文字','--s-body',16],['輔助說明','--s-help',13],['標題','--s-title',25],['區塊標題','--s-heading',20],['表單標籤','--s-label',14],['按鍵文字','--s-button',16],['輸入文字','--s-input',16],['玩家姓名','--s-player',17],['日期與局數','--s-meta',12],['本場累計','--s-total',21],['各局紀錄','--s-round',16],['筆記本文字','--s-notes',16],['備份頁文字','--s-backup',16],['數字鍵盤','--s-keypad',22],['提示訊息','--s-notice',22],['頁尾文字','--s-footer',12]];
